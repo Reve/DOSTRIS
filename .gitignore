@@ -1,0 +1,5 @@
+*.BAK
+*.SWP
+*.OBJ
+.DS_Store
+BUILD/*
