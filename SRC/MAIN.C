@@ -71,7 +71,7 @@ int get_field_idx(int posX, int posY, int px, int py)
 	int fx = (posX - LANE_POSX) / BLOCK_SIZE;
 	int fy = (posY - LANE_POSY) / BLOCK_SIZE;
 	int fi = (fy + py) * LANE_WIDTH + (fx + px);
-	
+
 	return fi;
 }
 
@@ -87,7 +87,7 @@ int check_next_move(Piece *p, int nRot, int nPosX, int nPosY)
 			int fy = (nPosY - LANE_POSY) / BLOCK_SIZE;
 			int fi = get_field_idx(nPosX, nPosY, px, py);
 			int pi = calc_rotation(px, py, nRot);
-			
+
 			if (fx + px >= 0 && fx + px < LANE_WIDTH)
 			{
 				if (fy + py >= 0 && fy + py < LANE_HEIGHT)
@@ -149,13 +149,13 @@ void cement_piece(Piece *p)
 		{
 			int fi = get_field_idx(p->pos.x, p->pos.y, px, py);
 			int pi = calc_rotation(px, py, p->rotation);
-			
+
 			if (fi < LANE_WIDTH * LANE_HEIGHT && p->shape[pi] != 0)
 			{
 				lane[fi] = p->shape[pi];
 			}
 		}
-		
+
 	}
 }
 
@@ -166,7 +166,7 @@ void get_next_piece(Piece *p)
 	p->pos.y = LANE_POSY + BLOCK_SIZE * 0;
 	p->rotation = 0;
 	p->shape = shapes[r];
-	
+
 	if (!check_next_move(p, p->rotation, p->pos.x, p->pos.y))
 		game_over = 1;
 }
@@ -176,26 +176,81 @@ unsigned long get_tick(void)
 	return (TICKS);
 }
 
+void check_for_line(void)
+{
+	int x, y;
+
+	for(y = 0; y < LANE_HEIGHT; y++)
+	{
+		int l = 0;
+		for(x = 0; x < LANE_WIDTH; x++)
+		{
+			if (lane[y * LANE_WIDTH + x] != 0)
+			{
+				 l++;
+			}
+		}
+
+		if(l == LANE_WIDTH)
+		{
+			// make line white
+			int k;
+
+			for(k = 0; k < LANE_WIDTH; k++)
+			{
+				lane[y * LANE_WIDTH + k] = WHITE;
+			}
+
+			draw_lane(s, lane, LANE_POSX, LANE_POSY);
+			update_buffer(s);
+			//sleep(1);
+
+			// clear line
+			for(k = 0; k < LANE_WIDTH; k++)
+			{
+				lane[y * LANE_WIDTH + k] = 0;
+			}
+
+			draw_lane(s, lane, LANE_POSX, LANE_POSY);
+			update_buffer(s);
+			//sleep(1);
+			// shift upper rows down
+			for (k = y - 1; k > 0; k--)
+			{
+				int xx;
+
+				for (xx = 0; xx < LANE_WIDTH; xx++)
+				{
+					lane[(k + 1) * LANE_WIDTH + xx] = lane[k * LANE_WIDTH + xx];
+				}
+			}
+
+			draw_lane(s, lane, LANE_POSX, LANE_POSY);
+			update_buffer(s);
+		}
+	}
+}
+
 void main(void)
 {
 	event_t event;
 
 	long input_next_time = 0;
 	long one_second = 0;
-	
+
 	Piece p;
 
 	s = malloc(sizeof(screen_t));
-	
+
 	init_video_mode(s);
 	init_keyboard();
-	
+
 	text_init();
 	set_font(0);
-	
+
 	init_lane();
 	init_walls(s);
-	
+
 	get_next_piece(&p);
 
 	// draw static UI components (this should be drawn once)
@@ -212,6 +267,7 @@ void main(void)
 
 	while (!game_over)
 	{
+		check_for_line();
 		draw_lane(s, lane, LANE_POSX, LANE_POSY);
 		draw_shape(s, &p);
 		update_buffer(s);
@@ -223,25 +279,16 @@ void main(void)
 				game_over = 1;
 
 			if (event.data1 == KEY_CODE_LEFT)
-			{
 				move_left(&p);
 
-			}
-
 			if (event.data1 == KEY_CODE_RIGHT)
-			{
 				move_right(&p);
-			}
 
 			if (event.data1 == KEY_CODE_DOWN)
-			{
 				move_down(&p);
-			}
 
 			if (event.data1 == KEY_CODE_UP)
-			{
 				rotate(&p);
-			}
 
 			input_next_time = get_tick() + 3;
 		}
@@ -253,8 +300,8 @@ void main(void)
 				// if there is no more free space down, cement piece
 				cement_piece(&p);
 				get_next_piece(&p);
-			}		
-			
+			}
+
 			one_second = get_tick() + 18;
 		}
 	}
