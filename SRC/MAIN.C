@@ -237,6 +237,9 @@ void main(void)
 
 	long input_next_time = 0;
 	long one_second = 0;
+	int fps = 0;
+	char sfps[10];
+	char ssfps[10];
 
 	Piece p;
 
@@ -271,6 +274,7 @@ void main(void)
 		draw_lane(s, lane, LANE_POSX, LANE_POSY);
 		draw_shape(s, &p);
 		update_buffer(s);
+		fps++;
 
 		if (check_input(&event) && get_tick() >= input_next_time)
 		{
@@ -301,7 +305,10 @@ void main(void)
 				cement_piece(&p);
 				get_next_piece(&p);
 			}
-
+			sprintf(sfps, "FPS: %d", fps);
+			draw_string(s, sfps, 10, 10, 60, WHITE, BLACK);
+			fps = 0;
+			sprintf(sfps, "");
 			one_second = get_tick() + 18;
 		}
 	}
